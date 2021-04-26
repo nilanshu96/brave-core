@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -71,7 +72,6 @@ class BraveContentSettingsAgentImpl
   void DidCommitProvisionalLoad(ui::PageTransition transition) override;
 
   bool IsScriptTemporilyAllowed(const GURL& script_url);
-  bool AllowStorageAccessForMainFrameSync(StorageType storage_type);
 
   // brave_shields::mojom::BraveShields.
   void SetAllowScriptsFromOriginsOnce(
@@ -104,6 +104,11 @@ class BraveContentSettingsAgentImpl
 
   mojo::AssociatedReceiverSet<brave_shields::mojom::BraveShields>
       brave_shields_receivers_;
+
+  using EphemeralStoragePermissionsKey =
+      std::tuple<url::Origin, url::Origin, StorageType>;
+  base::flat_map<EphemeralStoragePermissionsKey, bool>
+      cached_ephemeral_storage_permissions_;
 
   DISALLOW_COPY_AND_ASSIGN(BraveContentSettingsAgentImpl);
 };
