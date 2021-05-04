@@ -122,6 +122,11 @@ void Wallet::AuthorizeWallet(
     return;
   }
 
+  if (wallet_type == constant::kWalletGemini) {
+    ledger_->gemini()->WalletAuthorization(args, callback);
+    return;
+  }
+
   NOTREACHED();
   callback(type::Result::LEDGER_ERROR, {});
 }
@@ -130,14 +135,17 @@ void Wallet::DisconnectWallet(
       const std::string& wallet_type,
       ledger::ResultCallback callback) {
   if (wallet_type == constant::kWalletUphold) {
-    ledger_->uphold()->DisconnectWallet(true);
-    callback(type::Result::LEDGER_OK);
+    ledger_->uphold()->DisconnectWallet(callback, true);
     return;
   }
 
   if (wallet_type == constant::kWalletBitflyer) {
-    ledger_->bitflyer()->DisconnectWallet(true);
-    callback(type::Result::LEDGER_OK);
+    ledger_->bitflyer()->DisconnectWallet(callback, true);
+    return;
+  }
+
+  if (wallet_type == constant::kWalletGemini) {
+    ledger_->gemini()->DisconnectWallet(callback, true);
     return;
   }
 
@@ -197,6 +205,7 @@ void Wallet::GetAnonWalletStatus(ledger::ResultCallback callback) {
 void Wallet::DisconnectAllWallets(ledger::ResultCallback callback) {
   DisconnectWallet(constant::kWalletUphold, [](const type::Result result) {});
   DisconnectWallet(constant::kWalletBitflyer, [](const type::Result result) {});
+  DisconnectWallet(constant::kWalletGemini, [](const type::Result result) {});
   callback(type::Result::LEDGER_OK);
 }
 

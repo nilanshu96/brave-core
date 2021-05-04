@@ -114,6 +114,8 @@ std::string URLMethodToRequestType(ledger::type::UrlMethod method) {
       return "PUT";
     case ledger::type::UrlMethod::PATCH:
       return "PATCH";
+    case ledger::type::UrlMethod::DELETE:
+      return "DELETE";
     default:
       NOTREACHED();
       return "GET";
@@ -2837,13 +2839,14 @@ void RewardsServiceImpl::OnGetExternalWallet(
 }
 
 void RewardsServiceImpl::GetExternalWallet(GetExternalWalletCallback callback) {
+  std::string wallet_type = GetExternalWalletType();
   if (!Connected()) {
     std::move(callback).Run(ledger::type::Result::LEDGER_OK, nullptr);
     return;
   }
 
   bat_ledger_->GetExternalWallet(
-      GetExternalWalletType(),
+      wallet_type,
       base::BindOnce(&RewardsServiceImpl::OnGetExternalWallet, AsWeakPtr(),
                      std::move(callback)));
 }
@@ -2909,7 +2912,8 @@ void RewardsServiceImpl::ProcessRewardsPageUrl(
 
   if (action == "authorization" && !OnlyAnonWallet()) {
     if (wallet_type == ledger::constant::kWalletUphold ||
-        wallet_type == ledger::constant::kWalletBitflyer) {
+        wallet_type == ledger::constant::kWalletBitflyer ||
+        wallet_type == ledger::constant::kWalletGemini) {
       ExternalWalletAuthorization(
           wallet_type,
           query_map,
@@ -3475,7 +3479,11 @@ std::string RewardsServiceImpl::GetExternalWalletType() const {
     }
   }
 
-  return ledger::constant::kWalletUphold;
+  return wallet_type_;
+}
+
+void RewardsServiceImpl::SetSelectedWallet(const std::string wallet_type) {
+  wallet_type_ = wallet_type;
 }
 
 }  // namespace brave_rewards
