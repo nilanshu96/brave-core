@@ -19,6 +19,7 @@
 #include "brave/components/brave_ads/browser/ads_p2a.h"
 #include "brave/components/brave_perf_predictor/browser/buildflags.h"
 #include "brave/components/brave_rewards/common/pref_names.h"
+#include "brave/components/brave_search/browser/prefs.h"
 #include "brave/components/brave_shields/common/pref_names.h"
 #include "brave/components/brave_sync/brave_sync_prefs.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
@@ -328,6 +329,10 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
 #if BUILDFLAG(BRAVE_WALLET_ENABLED)
   brave_wallet::BraveWalletService::RegisterProfilePrefs(registry);
 #endif
+
+  // Brave Search
+  registry->RegisterListPref(brave_search::prefs::kDailyAsked);
+  registry->RegisterIntegerPref(brave_search::prefs::kTotalAsked, 0);
 
   // Binance widget
 #if BUILDFLAG(BINANCE_ENABLED)

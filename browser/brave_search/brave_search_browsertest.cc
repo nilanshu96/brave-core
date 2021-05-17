@@ -8,12 +8,15 @@
 #include "base/test/thread_test_helper.h"
 #include "brave/common/brave_paths.h"
 #include "brave/common/pref_names.h"
-#include "brave/components/brave_search/browser/brave_search_host.h"
+#include "brave/components/brave_search/browser/brave_search_fallback_host.h"
 #include "chrome/browser/extensions/extension_browsertest.h"
+#include "chrome/browser/search_engines/template_url_service_factory.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/test/base/in_process_browser_test.h"
+#include "chrome/test/base/search_test_utils.h"
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/network_session_configurator/common/network_switches.h"
+#include "components/search_engines/template_url_service.h"
 #include "content/public/browser/browser_task_traits.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
@@ -30,6 +33,21 @@ const char kAllowedDomain[] = "search.brave.com";
 const char kAllowedDomainDev[] = "search-dev.brave.com";
 const char kNotAllowedDomain[] = "brave.com";
 const char kBackupSearchContent[] = "<html><body>results</body></html>";
+const char kScriptDefaultAPIExists[] =
+    "window.domAutomationController.send("
+    "  !!(window.brave && window.brave.getCanSetDefaultSearchProvider)"
+    ")";
+const char kScriptDefaultAPIGetValue[] =
+    // Use setTimeout to allow opensearch xml to be fetched
+    // and template url created.
+    // If this is flakey, consider making TemplateURL manually,
+    // or observing the TemplateURLService for changes.
+    "setTimeout(function () {"
+    "  brave.getCanSetDefaultSearchProvider()"
+    "  .then(function (canSet) {"
+    "    window.domAutomationController.send(canSet)"
+    "  })"
+    "}, 1200)";
 
 std::string GetChromeFetchBackupResultsAvailScript() {
   return base::StringPrintf(R"(function waitForFunction() {
@@ -69,7 +87,7 @@ class BraveSearchTest : public InProcessBrowserTest {
 
     ASSERT_TRUE(https_server_->Start());
     GURL url = https_server()->GetURL("a.com", "/search");
-    brave_search::BraveSearchHost::SetBackupProviderForTest(url);
+    brave_search::BraveSearchFallbackHost::SetBackupProviderForTest(url);
   }
 
   void SetUpCommandLine(base::CommandLine* command_line) override {
@@ -80,11 +98,13 @@ class BraveSearchTest : public InProcessBrowserTest {
 
   std::unique_ptr<net::test_server::HttpResponse> HandleRequest(
       const net::test_server::HttpRequest& request) {
-    if (request.GetURL().path_piece() == "/sw.js" ||
-        request.GetURL().path_piece() == "/bravesearch.html")
+    GURL url = request.GetURL();
+    auto path = url.path_piece();
+
+    if (path == "/" || path == "/sw.js" || path == "/bravesearch.html" ||
+        path == "/search_provider_opensearch.xml")
       return nullptr;
 
-    GURL url = request.GetURL();
     auto http_response =
         std::make_unique<net::test_server::BasicHttpResponse>();
     if (url.path() + "?" + url.query() ==
@@ -138,4 +158,85 @@ IN_PROC_BROWSER_TEST_F(BraveSearchTest, CheckForAnUndefinedFunction) {
   auto result_first =
       EvalJsWithManualReply(contents, GetChromeFetchBackupResultsAvailScript());
   EXPECT_EQ(base::Value(false), result_first.value);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveSearchTest, DefaultAPIVisibleKnownHost) {
+  // Opensearch providers are only allowed in the root of a site,
+  // See SearchEngineTabHelper::GenerateKeywordFromNavigationEntry.
+  GURL url = https_server()->GetURL(kAllowedDomain, "/");
+  search_test_utils::WaitForTemplateURLServiceToLoad(
+      TemplateURLServiceFactory::GetForProfile(browser()->profile()));
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  WaitForLoadStop(contents);
+  EXPECT_EQ(url, contents->GetURL());
+  bool has_api;
+  EXPECT_TRUE(
+      ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIExists, &has_api));
+  EXPECT_TRUE(has_api);
+  bool can_set;
+  EXPECT_TRUE(ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIGetValue,
+                                          &can_set));
+  EXPECT_TRUE(can_set);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveSearchTest, DefaultAPIHiddenUnknownHost) {
+  // Opensearch providers are only allowed in the root of a site,
+  // See SearchEngineTabHelper::GenerateKeywordFromNavigationEntry.
+  GURL url = https_server()->GetURL(kNotAllowedDomain, "/");
+  search_test_utils::WaitForTemplateURLServiceToLoad(
+      TemplateURLServiceFactory::GetForProfile(browser()->profile()));
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  WaitForLoadStop(contents);
+  EXPECT_EQ(url, contents->GetURL());
+  bool has_api;
+  EXPECT_TRUE(
+      ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIExists, &has_api));
+  EXPECT_FALSE(has_api);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveSearchTest, DefaultAPIFalseNoOpenSearch) {
+  // Opensearch providers are only allowed in the root of a site,
+  // See SearchEngineTabHelper::GenerateKeywordFromNavigationEntry.
+  GURL url = https_server()->GetURL(kAllowedDomain, "/bravesearch.html");
+  search_test_utils::WaitForTemplateURLServiceToLoad(
+      TemplateURLServiceFactory::GetForProfile(browser()->profile()));
+  ui_test_utils::NavigateToURL(browser(), url);
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  WaitForLoadStop(contents);
+  EXPECT_EQ(url, contents->GetURL());
+  bool has_api;
+  EXPECT_TRUE(
+      ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIExists, &has_api));
+  EXPECT_TRUE(has_api);
+  bool can_set;
+  EXPECT_TRUE(ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIGetValue,
+                                          &can_set));
+  EXPECT_FALSE(can_set);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveSearchTest, DefaultAPIFalsePrivateWindow) {
+  // Opensearch providers are only allowed in the root of a site,
+  // See SearchEngineTabHelper::GenerateKeywordFromNavigationEntry.
+  GURL url = https_server()->GetURL(kAllowedDomain, "/");
+  Browser* private_browser = CreateIncognitoBrowser(nullptr);
+  search_test_utils::WaitForTemplateURLServiceToLoad(
+      TemplateURLServiceFactory::GetForProfile(private_browser->profile()));
+  ui_test_utils::NavigateToURL(private_browser, url);
+  content::WebContents* contents =
+      private_browser->tab_strip_model()->GetActiveWebContents();
+  WaitForLoadStop(contents);
+  EXPECT_EQ(url, contents->GetURL());
+  bool has_api;
+  EXPECT_TRUE(
+      ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIExists, &has_api));
+  EXPECT_TRUE(has_api);
+  bool can_set;
+  EXPECT_TRUE(ExecuteScriptAndExtractBool(contents, kScriptDefaultAPIGetValue,
+                                          &can_set));
+  EXPECT_FALSE(can_set);
 }
