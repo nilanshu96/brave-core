@@ -1,18 +1,23 @@
-/* Copyright (c) 2021 The Brave Authors. All rights reserved.
+/* Copyright (c) 2020 The Brave Authors. All rights reserved.
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "bat/ledger/internal/endpoint/wallet/delete_wallet_bitflyer/delete_wallet_bitflyer.h"
+#include "bat/ledger/internal/endpoint/promotion/delete_claim_uphold/delete_claim_uphold.h"
 
+#include <map>
 #include <utility>
+#include <vector>
 
+#include "base/base64.h"
 #include "base/json/json_writer.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/strings/stringprintf.h"
 #include "bat/ledger/internal/common/request_util.h"
-#include "bat/ledger/internal/endpoint/wallet/wallet_util.h"
+#include "bat/ledger/internal/common/security_util.h"
+#include "bat/ledger/internal/endpoint/promotion/promotions_util.h"
 #include "bat/ledger/internal/ledger_impl.h"
-#include "bat/ledger/mojom_structs.h"
+#include "bat/ledger/internal/uphold/uphold_util.h"
 #include "net/http/http_status_code.h"
 
 using std::placeholders::_1;
@@ -20,36 +25,44 @@ using std::placeholders::_1;
 namespace {
 
 std::string GetPath(const std::string& payment_id) {
-  return base::StringPrintf("/v3/wallet/bitflyer/%s/claim", payment_id.c_str());
+  return base::StringPrintf("/v3/wallet/uphold/%s/claim", payment_id.c_str());
 }
 
 }  // namespace
 
 namespace ledger {
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-DeleteWalletBitflyer::DeleteWalletBitflyer(LedgerImpl* ledger) : ledger_(ledger) {
+DeleteClaimUphold::DeleteClaimUphold(LedgerImpl* ledger):
+    ledger_(ledger) {
   DCHECK(ledger_);
 }
 
-DeleteWalletBitflyer::~DeleteWalletBitflyer() = default;
+DeleteClaimUphold::~DeleteClaimUphold() = default;
 
-std::string DeleteWalletBitflyer::GetUrl() {
+std::string DeleteClaimUphold::GetUrl() {
   const auto wallet = ledger_->wallet()->GetWallet();
   if (!wallet) {
     BLOG(0, "Wallet is null");
     return "";
   }
 
-  const std::string path = GetPath(wallet->payment_id);
+  const std::string& path = base::StringPrintf(
+      "/v3/wallet/uphold/%s/claim",
+      wallet->payment_id.c_str());
 
   return GetServerUrl(path);
 }
 
-type::Result DeleteWalletBitflyer::CheckStatusCode(const int status_code) {
+type::Result DeleteClaimUphold::CheckStatusCode(const int status_code) {
   if (status_code == net::HTTP_BAD_REQUEST) {
     BLOG(0, "Invalid request");
+    return type::Result::LEDGER_ERROR;
+  }
+
+  if (status_code == net::HTTP_FORBIDDEN) {
+    BLOG(0, "Forbidden");
     return type::Result::LEDGER_ERROR;
   }
 
@@ -59,7 +72,7 @@ type::Result DeleteWalletBitflyer::CheckStatusCode(const int status_code) {
   }
 
   if (status_code == net::HTTP_CONFLICT) {
-    BLOG(0, "Conflict");
+    BLOG(0, "Not found");
     return type::Result::ALREADY_EXISTS;
   }
 
@@ -76,10 +89,12 @@ type::Result DeleteWalletBitflyer::CheckStatusCode(const int status_code) {
   return type::Result::LEDGER_OK;
 }
 
-void DeleteWalletBitflyer::Request(DeleteWalletBitflyerCallback callback) {
-  auto url_callback =
-      std::bind(&DeleteWalletBitflyer::OnRequest, this, _1, callback);
-  const std::string payload = "";
+void DeleteClaimUphold::Request(DeleteClaimUpholdCallback callback) {
+  auto url_callback = std::bind(&DeleteClaimUphold::OnRequest,
+      this,
+      _1,
+      callback);
+  const std::string& payload = "";
 
   const auto wallet = ledger_->wallet()->GetWallet();
   if (!wallet) {
@@ -96,18 +111,19 @@ void DeleteWalletBitflyer::Request(DeleteWalletBitflyerCallback callback) {
   auto request = type::UrlRequest::New();
   request->url = GetUrl();
   request->content = payload;
-  request->headers = headers;
   request->content_type = "application/json; charset=utf-8";
+  request->headers = headers;
   request->method = type::UrlMethod::DELETE;
   ledger_->LoadURL(std::move(request), url_callback);
 }
 
-void DeleteWalletBitflyer::OnRequest(const type::UrlResponse& response,
-                                     DeleteWalletBitflyerCallback callback) {
+void DeleteClaimUphold::OnRequest(
+    const type::UrlResponse& response,
+    DeleteClaimUpholdCallback callback) {
   ledger::LogUrlResponse(__func__, response);
   callback(CheckStatusCode(response.status_code));
 }
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger

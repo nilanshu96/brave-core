@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_UPHOLD_DELETE_WALLET_UPHOLD_H_
-#define BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_UPHOLD_DELETE_WALLET_UPHOLD_H_
+#ifndef BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_UPHOLD_DELETE_CLAIM_UPHOLD_H_
+#define BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_UPHOLD_DELETE_CLAIM_UPHOLD_H_
 
 #include <string>
 
@@ -32,38 +32,32 @@ namespace ledger {
 class LedgerImpl;
 
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-using DeleteWalletUpholdCallback = std::function<void(
+using DeleteClaimUpholdCallback = std::function<void(
     const type::Result result)>;
 
-class DeleteWalletUphold {
+class DeleteClaimUphold {
  public:
-  explicit DeleteWalletUphold(LedgerImpl* ledger);
-  ~DeleteWalletUphold();
+  explicit DeleteClaimUphold(LedgerImpl* ledger);
+  ~DeleteClaimUphold();
 
-  void Request(DeleteWalletUpholdCallback callback);
+  void Request(DeleteClaimUpholdCallback callback);
 
  private:
   std::string GetUrl();
 
-  std::string GeneratePayload(const double user_funds);
-
   type::Result CheckStatusCode(const int status_code);
-
-  type::Result ParseBody(
-      const std::string& body,
-      std::string* payment_id);
 
   void OnRequest(
       const type::UrlResponse& response,
-      DeleteWalletUpholdCallback callback);
+      DeleteClaimUpholdCallback callback);
 
   LedgerImpl* ledger_;  // NOT OWNED
 };
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger
 
-#endif  // BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_UPHOLD_DELETE_WALLET_UPHOLD_H_
+#endif  // BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_UPHOLD_DELETE_CLAIM_UPHOLD_H_

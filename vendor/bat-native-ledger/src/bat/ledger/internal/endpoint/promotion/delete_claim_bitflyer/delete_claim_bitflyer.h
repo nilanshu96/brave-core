@@ -3,8 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_BITFLYER_DELETE_WALLET_BITFLYER_H_
-#define BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_BITFLYER_DELETE_WALLET_BITFLYER_H_
+#ifndef BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_BITFLYER_DELETE_CLAIM_BITFLYER_H_
+#define BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_BITFLYER_DELETE_CLAIM_BITFLYER_H_
 
 #include <string>
 
@@ -31,17 +31,17 @@ namespace ledger {
 class LedgerImpl;
 
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-using DeleteWalletBitflyerCallback =
+using DeleteClaimBitflyerCallback =
     std::function<void(const type::Result result)>;
 
-class DeleteWalletBitflyer {
+class DeleteClaimBitflyer {
  public:
-  explicit DeleteWalletBitflyer(LedgerImpl* ledger);
-  ~DeleteWalletBitflyer();
+  explicit DeleteClaimBitflyer(LedgerImpl* ledger);
+  ~DeleteClaimBitflyer();
 
-  void Request(DeleteWalletBitflyerCallback callback);
+  void Request(DeleteClaimBitflyerCallback callback);
 
  private:
   std::string GetUrl();
@@ -49,13 +49,13 @@ class DeleteWalletBitflyer {
   type::Result CheckStatusCode(const int status_code);
 
   void OnRequest(const type::UrlResponse& response,
-                 DeleteWalletBitflyerCallback callback);
+                 DeleteClaimBitflyerCallback callback);
 
   LedgerImpl* ledger_;  // NOT OWNED
 };
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger
 
-#endif  // BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_BITFLYER_DELETE_WALLET_BITFLYER_H_
+#endif  // BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_BITFLYER_DELETE_CLAIM_BITFLYER_H_

@@ -3,14 +3,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "bat/ledger/internal/endpoint/wallet/delete_wallet_gemini/delete_wallet_gemini.h"
+#include "bat/ledger/internal/endpoint/promotion/delete_claim_gemini/delete_claim_gemini.h"
 
 #include <utility>
 
 #include "base/json/json_writer.h"
 #include "base/strings/stringprintf.h"
 #include "bat/ledger/internal/common/request_util.h"
-#include "bat/ledger/internal/endpoint/wallet/wallet_util.h"
+#include "bat/ledger/internal/endpoint/promotion/promotions_util.h"
 #include "bat/ledger/internal/ledger_impl.h"
 #include "bat/ledger/mojom_structs.h"
 #include "net/http/http_status_code.h"
@@ -27,15 +27,15 @@ std::string GetPath(const std::string& payment_id) {
 
 namespace ledger {
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-DeleteWalletGemini::DeleteWalletGemini(LedgerImpl* ledger) : ledger_(ledger) {
+DeleteClaimGemini::DeleteClaimGemini(LedgerImpl* ledger) : ledger_(ledger) {
   DCHECK(ledger_);
 }
 
-DeleteWalletGemini::~DeleteWalletGemini() = default;
+DeleteClaimGemini::~DeleteClaimGemini() = default;
 
-std::string DeleteWalletGemini::GetUrl() {
+std::string DeleteClaimGemini::GetUrl() {
   const auto wallet = ledger_->wallet()->GetWallet();
   if (!wallet) {
     BLOG(0, "Wallet is null");
@@ -47,7 +47,7 @@ std::string DeleteWalletGemini::GetUrl() {
   return GetServerUrl(path);
 }
 
-type::Result DeleteWalletGemini::CheckStatusCode(const int status_code) {
+type::Result DeleteClaimGemini::CheckStatusCode(const int status_code) {
   if (status_code == net::HTTP_BAD_REQUEST) {
     BLOG(0, "Invalid request");
     return type::Result::LEDGER_ERROR;
@@ -75,9 +75,9 @@ type::Result DeleteWalletGemini::CheckStatusCode(const int status_code) {
   return type::Result::LEDGER_OK;
 }
 
-void DeleteWalletGemini::Request(DeleteWalletGeminiCallback callback) {
+void DeleteClaimGemini::Request(DeleteClaimGeminiCallback callback) {
   auto url_callback =
-      std::bind(&DeleteWalletGemini::OnRequest, this, _1, callback);
+      std::bind(&DeleteClaimGemini::OnRequest, this, _1, callback);
   const std::string payload = "";
 
   const auto wallet = ledger_->wallet()->GetWallet();
@@ -101,12 +101,12 @@ void DeleteWalletGemini::Request(DeleteWalletGeminiCallback callback) {
   ledger_->LoadURL(std::move(request), url_callback);
 }
 
-void DeleteWalletGemini::OnRequest(const type::UrlResponse& response,
-                                DeleteWalletGeminiCallback callback) {
+void DeleteClaimGemini::OnRequest(const type::UrlResponse& response,
+                                DeleteClaimGeminiCallback callback) {
   ledger::LogUrlResponse(__func__, response);
   callback(CheckStatusCode(response.status_code));
 }
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger

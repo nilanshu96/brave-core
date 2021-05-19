@@ -2,7 +2,8 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-#include "bat/ledger/internal/endpoint/wallet/delete_wallet_uphold/delete_wallet_uphold.h"
+
+#include "bat/ledger/internal/endpoint/promotion/delete_claim_uphold/delete_claim_uphold.h"
 
 #include <memory>
 #include <string>
@@ -11,37 +12,47 @@
 #include "base/test/task_environment.h"
 #include "bat/ledger/internal/ledger_client_mock.h"
 #include "bat/ledger/internal/ledger_impl_mock.h"
+#include "bat/ledger/internal/state/state_keys.h"
 #include "bat/ledger/ledger.h"
 #include "net/http/http_status_code.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-// npm run test -- brave_unit_tests --filter=DeleteWalletUpholdTest.*
+// npm run test -- brave_unit_tests --filter=DeleteClaimUpholdTest.*
 
 using ::testing::_;
 using ::testing::Invoke;
 
 namespace ledger {
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-class DeleteWalletUpholdTest : public testing::Test {
+class DeleteClaimUpholdTest : public testing::Test {
  private:
   base::test::TaskEnvironment scoped_task_environment_;
 
  protected:
   std::unique_ptr<ledger::MockLedgerClient> mock_ledger_client_;
   std::unique_ptr<ledger::MockLedgerImpl> mock_ledger_impl_;
-  std::unique_ptr<DeleteWalletUphold> disconnect_;
+  std::unique_ptr<DeleteClaimUphold> disconnect_;
 
-  DeleteWalletUpholdTest() {
+  DeleteClaimUpholdTest() {
     mock_ledger_client_ = std::make_unique<ledger::MockLedgerClient>();
     mock_ledger_impl_ =
         std::make_unique<ledger::MockLedgerImpl>(mock_ledger_client_.get());
-    disconnect_ = std::make_unique<DeleteWalletUphold>(mock_ledger_impl_.get());
+    disconnect_ = std::make_unique<DeleteClaimUphold>(mock_ledger_impl_.get());
+  }
+
+  void SetUp() override {
+    const std::string wallet = R"({
+      "payment_id":"fa5dea51-6af4-44ca-801b-07b6df3dcfe4",
+      "recovery_seed":"AN6DLuI2iZzzDxpzywf+IKmK1nzFRarNswbaIDI3pQg="
+    })";
+    ON_CALL(*mock_ledger_client_, GetEncryptedStringState(state::kWalletBrave))
+        .WillByDefault(testing::Return(wallet));
   }
 };
 
-TEST_F(DeleteWalletUpholdTest, ServerOK) {
+TEST_F(DeleteClaimUpholdTest, ServerOK) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -60,7 +71,7 @@ TEST_F(DeleteWalletUpholdTest, ServerOK) {
       });
 }
 
-TEST_F(DeleteWalletUpholdTest, ServerError400) {
+TEST_F(DeleteClaimUpholdTest, ServerError400) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -79,7 +90,7 @@ TEST_F(DeleteWalletUpholdTest, ServerError400) {
       });
 }
 
-TEST_F(DeleteWalletUpholdTest, ServerError403) {
+TEST_F(DeleteClaimUpholdTest, ServerError403) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -98,7 +109,7 @@ TEST_F(DeleteWalletUpholdTest, ServerError403) {
       });
 }
 
-TEST_F(DeleteWalletUpholdTest, ServerError404) {
+TEST_F(DeleteClaimUpholdTest, ServerError404) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -117,7 +128,7 @@ TEST_F(DeleteWalletUpholdTest, ServerError404) {
       });
 }
 
-TEST_F(DeleteWalletUpholdTest, ServerError409) {
+TEST_F(DeleteClaimUpholdTest, ServerError409) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -136,7 +147,7 @@ TEST_F(DeleteWalletUpholdTest, ServerError409) {
       });
 }
 
-TEST_F(DeleteWalletUpholdTest, ServerError500) {
+TEST_F(DeleteClaimUpholdTest, ServerError500) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -155,7 +166,7 @@ TEST_F(DeleteWalletUpholdTest, ServerError500) {
       });
 }
 
-TEST_F(DeleteWalletUpholdTest, ServerErrorRandom) {
+TEST_F(DeleteClaimUpholdTest, ServerErrorRandom) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -174,6 +185,6 @@ TEST_F(DeleteWalletUpholdTest, ServerErrorRandom) {
       });
 }
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger

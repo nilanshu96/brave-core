@@ -3,17 +3,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_GEMINI_DELETE_WALLET_GEMINI_H_
-#define BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_GEMINI_DELETE_WALLET_GEMINI_H_
+#ifndef BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_GEMINI_DELETE_CLAIM_GEMINI_H_
+#define BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_GEMINI_DELETE_CLAIM_GEMINI_H_
 
 #include <string>
 
 #include "bat/ledger/ledger.h"
 
-// POST /v3/wallet/gemini/{payment_id}/claim
+// DELETE /v3/wallet/gemini/{payment_id}/claim
 //
 // Request body:
-// {}
+// ""
 //
 // Success code:
 // HTTP_OK (200)
@@ -31,17 +31,17 @@ namespace ledger {
 class LedgerImpl;
 
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-using DeleteWalletGeminiCallback =
+using DeleteClaimGeminiCallback =
     std::function<void(const type::Result result)>;
 
-class DeleteWalletGemini {
+class DeleteClaimGemini {
  public:
-  explicit DeleteWalletGemini(LedgerImpl* ledger);
-  ~DeleteWalletGemini();
+  explicit DeleteClaimGemini(LedgerImpl* ledger);
+  ~DeleteClaimGemini();
 
-  void Request(DeleteWalletGeminiCallback callback);
+  void Request(DeleteClaimGeminiCallback callback);
 
  private:
   std::string GetUrl();
@@ -51,13 +51,13 @@ class DeleteWalletGemini {
   type::Result CheckStatusCode(const int status_code);
 
   void OnRequest(const type::UrlResponse& response,
-                 DeleteWalletGeminiCallback callback);
+                 DeleteClaimGeminiCallback callback);
 
   LedgerImpl* ledger_;  // NOT OWNED
 };
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger
 
-#endif  // BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_WALLET_DELETE_WALLET_GEMINI_DELETE_WALLET_GEMINI_H_
+#endif  // BRAVE_VENDOR_BAT_NATIVE_LEDGER_SRC_BAT_LEDGER_INTERNAL_ENDPOINT_PROMOTION_DELETE_CLAIM_GEMINI_DELETE_CLAIM_GEMINI_H_

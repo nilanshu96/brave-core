@@ -3,7 +3,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "bat/ledger/internal/endpoint/wallet/delete_wallet_gemini/delete_wallet_gemini.h"
+#include "bat/ledger/internal/endpoint/promotion/delete_claim_bitflyer/delete_claim_bitflyer.h"
 
 #include <memory>
 #include <string>
@@ -17,29 +17,29 @@
 #include "net/http/http_status_code.h"
 #include "testing/gtest/include/gtest/gtest.h"
 
-// npm run test -- brave_unit_tests --filter=DeleteWalletGeminiTest.*
+// npm run test -- brave_unit_tests --filter=DeleteClaimBitflyerTest.*
 
 using ::testing::_;
 using ::testing::Invoke;
 
 namespace ledger {
 namespace endpoint {
-namespace wallet {
+namespace promotion {
 
-class DeleteWalletGeminiTest : public testing::Test {
+class DeleteClaimBitflyerTest : public testing::Test {
  private:
   base::test::TaskEnvironment scoped_task_environment_;
 
  protected:
   std::unique_ptr<ledger::MockLedgerClient> mock_ledger_client_;
   std::unique_ptr<ledger::MockLedgerImpl> mock_ledger_impl_;
-  std::unique_ptr<DeleteWalletGemini> disconnect_;
+  std::unique_ptr<DeleteClaimBitflyer> disconnect_;
 
-  DeleteWalletGeminiTest() {
+  DeleteClaimBitflyerTest() {
     mock_ledger_client_ = std::make_unique<ledger::MockLedgerClient>();
     mock_ledger_impl_ =
         std::make_unique<ledger::MockLedgerImpl>(mock_ledger_client_.get());
-    disconnect_ = std::make_unique<DeleteWalletGemini>(mock_ledger_impl_.get());
+    disconnect_ = std::make_unique<DeleteClaimBitflyer>(mock_ledger_impl_.get());
   }
 
   void SetUp() override {
@@ -52,7 +52,7 @@ class DeleteWalletGeminiTest : public testing::Test {
   }
 };
 
-TEST_F(DeleteWalletGeminiTest, ServerOK) {
+TEST_F(DeleteClaimBitflyerTest, ServerOK) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(Invoke(
           [](type::UrlRequestPtr request, client::LoadURLCallback callback) {
@@ -65,10 +65,10 @@ TEST_F(DeleteWalletGeminiTest, ServerOK) {
 
   disconnect_->Request([](const type::Result result) {
                     EXPECT_EQ(result, type::Result::LEDGER_OK);
-                  });
+                       });
 }
 
-TEST_F(DeleteWalletGeminiTest, ServerError400) {
+TEST_F(DeleteClaimBitflyerTest, ServerError400) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(Invoke(
           [](type::UrlRequestPtr request, client::LoadURLCallback callback) {
@@ -84,7 +84,7 @@ TEST_F(DeleteWalletGeminiTest, ServerError400) {
                   });
 }
 
-TEST_F(DeleteWalletGeminiTest, ServerError403) {
+TEST_F(DeleteClaimBitflyerTest, ServerError403) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(
           Invoke([](
@@ -103,7 +103,7 @@ TEST_F(DeleteWalletGeminiTest, ServerError403) {
       });
 }
 
-TEST_F(DeleteWalletGeminiTest, ServerError404) {
+TEST_F(DeleteClaimBitflyerTest, ServerError404) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(Invoke(
           [](type::UrlRequestPtr request, client::LoadURLCallback callback) {
@@ -119,7 +119,7 @@ TEST_F(DeleteWalletGeminiTest, ServerError404) {
                   });
 }
 
-TEST_F(DeleteWalletGeminiTest, ServerError409) {
+TEST_F(DeleteClaimBitflyerTest, ServerError409) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(Invoke(
           [](type::UrlRequestPtr request, client::LoadURLCallback callback) {
@@ -131,11 +131,11 @@ TEST_F(DeleteWalletGeminiTest, ServerError409) {
           }));
 
   disconnect_->Request([](const type::Result result) {
-                    EXPECT_EQ(result, type::Result::ALREADY_EXISTS);
-                  });
+                          EXPECT_EQ(result, type::Result::ALREADY_EXISTS);
+                       });
 }
 
-TEST_F(DeleteWalletGeminiTest, ServerError500) {
+TEST_F(DeleteClaimBitflyerTest, ServerError500) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(Invoke(
           [](type::UrlRequestPtr request, client::LoadURLCallback callback) {
@@ -148,10 +148,10 @@ TEST_F(DeleteWalletGeminiTest, ServerError500) {
 
   disconnect_->Request([](const type::Result result) {
                     EXPECT_EQ(result, type::Result::LEDGER_ERROR);
-                  });
+                       });
 }
 
-TEST_F(DeleteWalletGeminiTest, ServerErrorRandom) {
+TEST_F(DeleteClaimBitflyerTest, ServerErrorRandom) {
   ON_CALL(*mock_ledger_client_, LoadURL(_, _))
       .WillByDefault(Invoke(
           [](type::UrlRequestPtr request, client::LoadURLCallback callback) {
@@ -164,9 +164,9 @@ TEST_F(DeleteWalletGeminiTest, ServerErrorRandom) {
 
   disconnect_->Request([](const type::Result result) {
                     EXPECT_EQ(result, type::Result::LEDGER_ERROR);
-                  });
+                       });
 }
 
-}  // namespace wallet
+}  // namespace promotion
 }  // namespace endpoint
 }  // namespace ledger
