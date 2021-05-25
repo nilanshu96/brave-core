@@ -1,0 +1,20 @@
+source_set("brave_federated") {
+  sources = [
+    "trace_collection_service.cc",
+    "trace_collection_service.h",
+  ]
+
+  deps = [
+    "//base",
+    "//brave/components/brave_stats/browser",
+    "//brave/components/version_info",
+    "//brave/vendor/bat-native-ads",
+    "//components/metrics",
+    "//components/prefs",
+    "//content/public/browser",
+    "//content/public/common",
+    "//services/network/public/cpp",
+    "//services/network/public/mojom",
+    "//url",
+  ]
+}
