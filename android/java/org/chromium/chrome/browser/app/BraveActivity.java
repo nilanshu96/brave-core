@@ -61,6 +61,7 @@ import org.chromium.chrome.browser.brave_stats.BraveStatsUtil;
 import org.chromium.chrome.browser.browsing_data.BrowsingDataBridge;
 import org.chromium.chrome.browser.browsing_data.ClearBrowsingDataFragmentAdvanced;
 import org.chromium.chrome.browser.browsing_data.TimePeriod;
+import org.chromium.chrome.browser.crypto_wallet.CryptoWalletActivity;
 import org.chromium.chrome.browser.dependency_injection.ChromeActivityComponent;
 import org.chromium.chrome.browser.flags.ChromeSwitches;
 import org.chromium.chrome.browser.informers.BraveAndroidSyncDisabledInformer;
@@ -92,7 +93,6 @@ import org.chromium.chrome.browser.toolbar.top.BraveToolbarLayout;
 import org.chromium.chrome.browser.util.BraveDbUtil;
 import org.chromium.chrome.browser.util.BraveReferrer;
 import org.chromium.chrome.browser.util.PackageUtils;
-import org.chromium.chrome.browser.crypto_wallet.CryptoWalletActivity;
 import org.chromium.chrome.browser.widget.crypto.binance.BinanceAccountBalance;
 import org.chromium.chrome.browser.widget.crypto.binance.BinanceWidgetManager;
 import org.chromium.components.bookmarks.BookmarkId;
@@ -430,8 +430,8 @@ public abstract class BraveActivity<C extends ChromeActivityComponent>
 
     private void openBraveWallet() {
         Intent cryptoWalletIntent = new Intent(this, CryptoWalletActivity.class);
-            cryptoWalletIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(cryptoWalletIntent);
+        cryptoWalletIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(cryptoWalletIntent);
     }
 
     private void checkSetDefaultBrowserModal() {
