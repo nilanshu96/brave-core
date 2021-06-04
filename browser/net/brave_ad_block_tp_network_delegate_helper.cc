@@ -104,7 +104,7 @@ class AdblockCnameResolveHostClient : public network::mojom::ResolveHostClient {
       if (!web_contents) {
         start_time_ = base::TimeTicks::Now();
         this->OnComplete(net::ERR_FAILED, net::ResolveErrorInfo(),
-                         base::nullopt);
+                         absl::nullopt);
         return;
       }
 
