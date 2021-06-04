@@ -61,8 +61,6 @@ class BraveTraceCollectionService {
      int fake_update_duration_;
      std::string ephemeral_ID_;
      std::string platform_;
-
-     // Do we need a callback to update the last collected slot
 };
 
 } // namespace brave

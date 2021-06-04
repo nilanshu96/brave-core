@@ -2,6 +2,8 @@ source_set("brave_federated") {
   sources = [
     "trace_collection_service.cc",
     "trace_collection_service.h",
+    "trace_collection_features.cc",
+    "trace_collection_features.h",
   ]
 
   deps = [

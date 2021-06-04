@@ -13,6 +13,7 @@
 #include "base/timer/timer.h"
 #include "bat/ads/pref_names.h"
 #include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
+#include "brave/components/brave_federated/trace_collection_features.h"
 #include "brave/components/p3a/pref_names.h"
 #include "chrome/browser/profiles/profile_manager.h"
 #include "components/prefs/pref_service.h"
@@ -21,22 +22,14 @@
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "url/gurl.h"
 
-// DEBUG
-#include <iostream>
-
 namespace brave {
 
 namespace {
 
 static constexpr char federatedLearningUrl[] = "https://fl.brave.software/";
 
-constexpr int kDefaultFakeUpdateDuration = 1 * 60; // 1 minute (while debugging).
-constexpr int kDefaultCollectionSlotSize = 30; // 30 minutes.
-
 constexpr char kLastCheckedSlot[] = "brave.federated.last_checked_slot";
 constexpr char kEphemeralID[] = "brave.federated.ephemeral_id";
-//onstexpr char kCollectionSlotSize[] = "brave.federated.collection_slot_size";
-//constexpr char kFakeUpdateDuration[] = "brave.federated.fake_update_duration"; 
 
 net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
     return net::DefineNetworkTrafficAnnotation("trace_collection_service", R"(
@@ -44,7 +37,7 @@ net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
           sender: "User Trace Collection Service"
           description:
             "Report of anonymized usage statistics. For more info see "
-            "https://{wikilink_here}"
+            "TODO: https://wikilink_here"
           trigger:
             "Reports are automatically generated on startup and at intervals "
             "while Brave is running."
@@ -86,7 +79,7 @@ void BraveTraceCollectionService::Start() {
     fake_update_activity_timer_ = std::make_unique<base::RetainingOneShotTimer>();
     fake_update_activity_timer_->Start(
         FROM_HERE,
-        base::TimeDelta::FromSeconds(fake_update_duration_),
+        base::TimeDelta::FromSeconds(fake_update_duration_*60),
         this, &BraveTraceCollectionService::OnFakeUpdateTimerFired
     );
     
@@ -95,16 +88,15 @@ void BraveTraceCollectionService::Start() {
     collection_slot_periodic_timer_ = std::make_unique<base::RepeatingTimer>();
     collection_slot_periodic_timer_->Start(
         FROM_HERE,
-        base::TimeDelta::FromSeconds(2*fake_update_duration_), //TODO: Need logic
+        base::TimeDelta::FromSeconds(2*fake_update_duration_*60),
         this, &BraveTraceCollectionService::OnCollectionSlotStartTimerFired
     );
 }
 
-
 void BraveTraceCollectionService::LoadPrefs() {
 
-    collection_slot_size_ = kDefaultCollectionSlotSize;
-    fake_update_duration_ = kDefaultFakeUpdateDuration;
+    collection_slot_size_ = trace_collection::features::GetCollectionSlotSizeValue();
+    fake_update_duration_ = trace_collection::features::GetFakeUpdateDurationValue();
     trace_collection_endpoint_ = GURL(federatedLearningUrl);
 
     last_checked_slot_ = pref_service_->GetInteger(kLastCheckedSlot);
@@ -126,12 +118,10 @@ void BraveTraceCollectionService::SavePrefs() {
 }
 
 void BraveTraceCollectionService::OnCollectionSlotStartTimerFired() {
-    std::cerr << "FL-Trace-Collection: Collection slot timer fired \n";
     fake_update_activity_timer_->Reset();
 }
 
 void BraveTraceCollectionService::OnFakeUpdateTimerFired() {
-    std::cerr << "FL-Trace-Collection: Fake computation timer fired \n";
     SendCollectionSlot();
 }
 
@@ -153,13 +143,11 @@ void BraveTraceCollectionService::SendCollectionSlot() {
       GetNetworkTrafficAnnotationTag());
     url_loader_->AttachStringForUpload(BuildTraceCollectionPayload(), "application/base64");
 
-    std::cerr << "FL-Trace-Collection: " << BuildTraceCollectionPayload() << "\n";
-
     //TODO: Send request, when endpoint is available
     /*
     url_loader_->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
         url_loader_factory_.get(),
-        base::BindOnce(&BraveP3AUploader::OnUploadComplete,
+        base::BindOnce(&BraveTraceCollectionService::OnUploadComplete,
                         base::Unretained(this)));
     */
 
@@ -192,8 +180,7 @@ std::string BraveTraceCollectionService::GetPlatformIdentifier() {
 }
 
 bool BraveTraceCollectionService::isTraceCollectionEnabled() {
-    // TODO: Hook up with Griffin feature switch
-    return true;
+    return trace_collection::features::IsTraceCollectionEnabled();
 }
 
 bool BraveTraceCollectionService::isAdsEnabled() {
