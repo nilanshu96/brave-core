@@ -8,6 +8,8 @@
 
 #include "brave/components/brave_federated/trace_collection_service.h"
 
+#include "base/json/json_writer.h"
+#include "base/strings/string_util.h"
 #include "base/timer/timer.h"
 #include "bat/ads/pref_names.h"
 #include "brave/components/brave_stats/browser/brave_stats_updater_util.h"
@@ -16,6 +18,7 @@
 #include "components/prefs/pref_service.h"
 #include "components/prefs/pref_registry_simple.h"
 #include "services/network/public/cpp/simple_url_loader.h"
+#include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "url/gurl.h"
 
 // DEBUG
@@ -25,8 +28,7 @@ namespace brave {
 
 namespace {
 
-//static constexpr char federatedLearningUrl[] = "https://fl.brave.com/";
-//static constexpr char traceCollectionWikiUrl[] = "https://#########";
+static constexpr char federatedLearningUrl[] = "https://fl.brave.software/";
 
 constexpr int kDefaultFakeUpdateDuration = 1 * 60; // 1 minute (while debugging).
 constexpr int kDefaultCollectionSlotSize = 30; // 30 minutes.
@@ -35,6 +37,30 @@ constexpr char kLastCheckedSlot[] = "brave.federated.last_checked_slot";
 constexpr char kEphemeralID[] = "brave.federated.ephemeral_id";
 //onstexpr char kCollectionSlotSize[] = "brave.federated.collection_slot_size";
 //constexpr char kFakeUpdateDuration[] = "brave.federated.fake_update_duration"; 
+
+net::NetworkTrafficAnnotationTag GetNetworkTrafficAnnotationTag() {
+    return net::DefineNetworkTrafficAnnotation("trace_collection_service", R"(
+        semantics {
+          sender: "User Trace Collection Service"
+          description:
+            "Report of anonymized usage statistics. For more info see "
+            "https://{wikilink_here}"
+          trigger:
+            "Reports are automatically generated on startup and at intervals "
+            "while Brave is running."
+          data:
+            "A protocol buffer with anonymized and encrypted usage data."
+          destination: WEBSITE
+        }
+        policy {
+          cookies_allowed: NO
+          setting:
+            "Users can enable or disable it in brave://settings/privacy"
+          policy_exception_justification:
+            "Not implemented."
+        }
+    )");
+}
 
 } // anonymous namespace
 
@@ -79,13 +105,15 @@ void BraveTraceCollectionService::LoadPrefs() {
 
     collection_slot_size_ = kDefaultCollectionSlotSize;
     fake_update_duration_ = kDefaultFakeUpdateDuration;
+    trace_collection_endpoint_ = GURL(federatedLearningUrl);
 
     last_checked_slot_ = pref_service_->GetInteger(kLastCheckedSlot);
+    platform_ = GetPlatformIdentifier();
     std::string ephemeral_ID = pref_service_->GetString(kEphemeralID);
     if (ephemeral_ID.empty()) {
         ephemeral_ID_ = 
                 base::ToUpperASCII(base::UnguessableToken::Create().ToString());
-        // TODO: May want to set expiration date for ephemeral ID, after which
+        // TODO(lminto): May want to set expiration date for ephemeral ID, after which
         // it needs to be rotated.
     } else {
         ephemeral_ID_ = ephemeral_ID;
@@ -113,41 +141,54 @@ void BraveTraceCollectionService::SendCollectionSlot() {
         return;
     }
 
-    // TODO: Post HTTP request to collection endpoint
-    /*
     auto resource_request = std::make_unique<network::ResourceRequest>();
     resource_request->url = trace_collection_endpoint_;
-    //resource_request->headers.SetHeader("X-Brave-Trace", "?1"); Needed??
+    resource_request->headers.SetHeader("X-Brave-Trace", "?1");
 
     resource_request->credentials_mode = network::mojom::CredentialsMode::kOmit;
     resource_request->method = "POST";
+
+    url_loader_ = network::SimpleURLLoader::Create(
+      std::move(resource_request),
+      GetNetworkTrafficAnnotationTag());
+    url_loader_->AttachStringForUpload(BuildTraceCollectionPayload(), "application/base64");
+
+    std::cerr << "FL-Trace-Collection: " << BuildTraceCollectionPayload() << "\n";
+
+    //TODO: Send request, when endpoint is available
+    /*
+    url_loader_->DownloadToStringOfUnboundedSizeUntilCrashAndDie(
+        url_loader_factory_.get(),
+        base::BindOnce(&BraveP3AUploader::OnUploadComplete,
+                        base::Unretained(this)));
     */
-
-    // Get payload information
-    const std::string ephemeral_ID = GetEphemeralID();
-    const std::string platform = GetPlatformIdentifier();
-
-    //TODO: Send request
 
     last_checked_slot_ = current_collection_slot;
     SavePrefs();
 }
 
-int BraveTraceCollectionService::GetCurrentCollectionSlot() {
+std::string BraveTraceCollectionService::BuildTraceCollectionPayload() const {
+  base::Value root(base::Value::Type::DICTIONARY);
+
+  root.SetKey("ephemeral_ID", base::Value(ephemeral_ID_));
+  root.SetKey("platform", base::Value(platform_));
+  root.SetKey("collection_slot", base::Value(GetCurrentCollectionSlot()));
+
+  std::string result;
+  base::JSONWriter::Write(root, &result);
+
+  return result;
+}
+
+int BraveTraceCollectionService::GetCurrentCollectionSlot() const {
     base::Time::Exploded now;
     base::Time::Now().LocalExplode(&now);
      
-    std::cerr << "FL-Trace-Collection: H:" << now.hour
-              << ", M:" << now.minute << "\n";
     return (now.hour*60+now.minute)/collection_slot_size_;
 }
      
 std::string BraveTraceCollectionService::GetPlatformIdentifier() {
     return brave_stats::GetPlatformIdentifier();
-}
-
-std::string BraveTraceCollectionService::GetEphemeralID() {
-    return ephemeral_ID_;
 }
 
 bool BraveTraceCollectionService::isTraceCollectionEnabled() {
