@@ -76,6 +76,7 @@ source_set("browser") {
       "//components/history/core/common",
       "//components/wifi",
       "//net",
+      "//sandbox/policy",
       "//services/network/public/cpp",
       "//services/network/public/mojom",
       "//ui/base",

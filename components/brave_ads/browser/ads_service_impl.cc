@@ -84,6 +84,7 @@
 #include "content/public/browser/service_process_host.h"
 #include "content/public/browser/storage_partition.h"
 #include "net/base/network_change_notifier.h"
+#include "sandbox/policy/sandbox_type.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "services/network/public/cpp/simple_url_loader.h"
 #include "third_party/abseil-cpp/absl/types/optional.h"
@@ -104,16 +105,24 @@
 
 using brave_rewards::RewardsNotificationService;
 
+// bat_ads::mojom::BatAdsService
+namespace bat_ads {
+namespace mojom {
+class BatAdsService;
+}  // namespace mojom
+}  // namespace bat_ads
+
+template <>
+inline sandbox::policy::SandboxType
+content::GetServiceSandboxType<bat_ads::mojom::BatAdsService>() {
+  return sandbox::policy::SandboxType::kUtility;
+}
+
 namespace brave_ads {
 
 namespace {
 
 const unsigned int kRetriesCountOnNetworkChange = 1;
-
-}  // namespace
-
-namespace {
-
 constexpr char kAdNotificationUrlPrefix[] = "https://www.brave.com/ads/?";
 
 static std::map<std::string, int> g_schema_resource_ids = {
